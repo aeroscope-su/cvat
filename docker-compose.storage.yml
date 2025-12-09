@@ -1,0 +1,40 @@
+version: "3.9"
+
+services:
+  cvat_server:
+    environment:
+      # === включаем полный S3 backend ===
+      CVAT_ENABLE_S3_API_STORAGE: "true"
+
+      # === MinIO endpoint ===
+      CVAT_S3_ENDPOINT_URL: "${MINIO_ENDPOINT_URL:-http://minio:9000}"
+      CVAT_S3_REGION: "${MINIO_REGION:-us-east-1}"
+      CVAT_S3_USE_HTTPS: "${MINIO_USE_HTTPS:-false}"
+
+      # === креды MinIO (из .env или secrets) ===
+      CVAT_S3_ACCESS_KEY_ID: "${MINIO_ACCESS_KEY}"
+      CVAT_S3_SECRET_ACCESS_KEY: "${MINIO_SECRET_KEY}"
+
+      # === bucket'ы (автоматически создадуться при обращении) ===
+      CVAT_S3_DATA_BUCKET: "${CVAT_DATA_BUCKET:-cvat-data}"
+      CVAT_S3_ANNOTATIONS_BUCKET: "${CVAT_ANNOTATIONS_BUCKET:-cvat-exports}"
+
+    depends_on:
+      - minio
+
+  # если MinIO запускается тут же — это только пример.
+  # Удали если у тебя MinIO в другом месте.
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: "${MINIO_ACCESS_KEY}"
+      MINIO_ROOT_PASSWORD: "${MINIO_SECRET_KEY}"
+    volumes:
+      - minio_data:/data
+
+volumes:
+  minio_data:
